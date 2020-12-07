@@ -1,0 +1,12 @@
+Nutrient ID #'s
+------------------------------------------------------------------
+Protein: 1003
+
+
+
+Links
+------------------------------------------------------------------
+https://fdc.nal.usda.gov/faq.html
+
+https://fdc.nal.usda.gov/docs/BFPDB_Doc_Aug2018.pdf
+file:///C:/Users/PC/AppData/Local/Temp/Download_Field_Descriptions_Oct2020-1.pdf
