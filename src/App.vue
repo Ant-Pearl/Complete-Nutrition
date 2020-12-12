@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
+    <img class="apple-img" alt="Apple" src="./assets/burger-fries.png">
     <foodFinder msg="Welcome to Your Vue.js App"/>
     <mainFooter/>
   </div>
@@ -28,5 +28,10 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+  background: #FFFBD0;
+}
+.apple-img {
+  width: 20%;
+  height: auto;
 }
 </style>
