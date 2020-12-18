@@ -9,21 +9,23 @@
               <div class="sri-info-row">{{ item.description }}</div>
               <div class="sri-info-row">Calories {{ item.energy }} Per 100g | Protein {{ item.protein }}g Per 100g</div>
             </span>
-            <button class="sri-btn" v-on:click="addToDiet(item.fdcId)">Add to Diet</button>
+            <button class="sri-btn btn" v-on:click="addToDiet(item.fdcId)">Add to Diet</button>
           </div>
         </div>
       </div>
       <div class="diet row-item" v-bind:style='{"display": dietDisplay}'>
         <div class="d-item" v-for="(item, index) in diet" :key='index'>
           <span class="di-info">{{ item.description }} | Calories {{ item.energy }} Per 100g | Protein {{ item.protein }}g Per 100g</span>
-          <button class="di-btn">--></button>
+          <button class="di-btn btn">More Details</button>
           <input class="di-amount" type="number" v-model="item.weight">
         </div>
       </div>
+      <div class="nutrition-specifics row-item" v-bind:style='{"display": nutrientDisplay}'>
+        <div class="ns-item" v-for="(item, index) in diet" :key='index'>
+          
+        </div>
+      </div>
     </div>
-
-    <div>Amount of protein: {{ nutrientsCount[1003] }} {{ nutrientsUnit[1003] }}</div>
-
   </div>
 </template>
 
@@ -40,12 +42,14 @@ export default {
       searchQuery: "cheerios",
       searchDisplay: "none",
       dietDisplay: "none",
+      nutrientDisplay: "none",
       //               energy   protein   b-12
       nutrientsCount: {1008: 0, 1003: 0, 1178: 0},
       nutrientsUnit: {1008: "KCAL", 1003: "G", 1178: "G"},
       searchScroll: 0,
       searchResults:[],
-      diet:[]
+      diet:[],
+      nutrients: []
     }
   },
   methods: {
@@ -109,6 +113,38 @@ export default {
                 description: "",
                 energy: 0,
                 protein: 0
+              })
+              this.searchResults[i].description = res.data.foods[i].description
+              this.searchResults[i].fdcId = res.data.foods[i].fdcId
+              this.searchResults[i].energy = this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value
+              this.searchResults[i].protein = this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
+            } else {
+              break
+            }
+            i++
+          }
+
+        })
+        .catch(err => {console.error(err)})
+    },
+
+    displayNutrientList: function(foodCode) {
+      this.nutrientDisplay = "block"
+
+      axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
+        params: {
+          query: foodCode,
+          API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
+        }
+      })
+        .then(res => {
+          console.log(res.data.foods[i])
+          let i = 0
+          this.nutrients = []
+          for (i in res.data) {
+            if (res.data.foods[i].foodNutrients != null) {
+              this.nutrients.push({
+                nutrientName: "cock"
               })
               this.searchResults[i].description = res.data.foods[i].description
               this.searchResults[i].fdcId = res.data.foods[i].fdcId
