@@ -6,7 +6,7 @@
         <div class="search-results">
           <div class="sr-item" v-for="(item, index) in searchResults" :key='index'>
             <span class="sri-info">
-              <div class="sri-info-row">{{ item.description }}</div>
+              <div class="sri-info-row food-title1">{{ item.description }}</div>
               <div class="sri-info-row">Calories {{ item.energy }} Per 100g | Protein {{ item.protein }}g Per 100g</div>
             </span>
             <button class="sri-btn btn" v-on:click="addToDiet(item.fdcId)">Add to Diet</button>
@@ -15,14 +15,24 @@
       </div>
       <div class="diet row-item" v-bind:style='{"display": dietDisplay}'>
         <div class="d-item" v-for="(item, index) in diet" :key='index'>
-          <span class="di-info">{{ item.description }} | Calories {{ item.energy }} Per 100g | Protein {{ item.protein }}g Per 100g</span>
-          <button class="di-btn btn">More Details</button>
-          <input class="di-amount" type="number" v-model="item.weight">
+          <img class="x-icon" src="@/assets/x-icon.png" alt="x-icon">
+          <span class="di-info">
+            <span class="di-title food-title1">{{ item.description }}</span>
+            <span class="di-amount">Weight: <input class="di-input num-input" type="number" v-model="item.weight">Grams</span>
+          </span>
+          <button class="di-btn btn" v-on:click="displayNutrientList(index)">More Details</button>
         </div>
       </div>
       <div class="nutrition-specifics row-item" v-bind:style='{"display": nutrientDisplay}'>
-        <div class="ns-item" v-for="(item, index) in diet" :key='index'>
-          
+        <div v-if="diet.length > 0">
+          <div class="ns-back-arrow-wrapper">
+            <img class="back-arrow ns-back-arrow" src="@/assets/back-arrow.png" alt="x-icon">
+            <span class="ns-back-arrow-text">Back to Diet</span>
+          </div>
+          <span class="nsi-info food-title1">{{ diet[nutrientListDietReferenceIndex].description }}</span>
+          <div class="ns-item" v-for="(item, index) in diet[nutrientListDietReferenceIndex].nutrients" :key='index'>
+            <span class="nsi-info">{{ item.nutrientName }} | Value {{ item.value }} {{ item.unitName }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -43,6 +53,7 @@ export default {
       searchDisplay: "none",
       dietDisplay: "none",
       nutrientDisplay: "none",
+      nutrientListDietReferenceIndex: 0,
       //               energy   protein   b-12
       nutrientsCount: {1008: 0, 1003: 0, 1178: 0},
       nutrientsUnit: {1008: "KCAL", 1003: "G", 1178: "G"},
@@ -58,6 +69,7 @@ export default {
         this.dietDisplay = "none"
       } else {
         this.dietDisplay = "block"
+        this.nutrientDisplay = "none"
       }
       console.log("Requesting fdcId " + fdcId)
       axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
@@ -109,15 +121,11 @@ export default {
           while(i < 30) {
             if (res.data.foods[i] != null) {
               this.searchResults.push({
-                fdcId: 0,
-                description: "",
-                energy: 0,
-                protein: 0
+                fdcId: res.data.foods[i].fdcId,
+                description: res.data.foods[i].description,
+                energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
+                protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
               })
-              this.searchResults[i].description = res.data.foods[i].description
-              this.searchResults[i].fdcId = res.data.foods[i].fdcId
-              this.searchResults[i].energy = this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value
-              this.searchResults[i].protein = this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
             } else {
               break
             }
@@ -128,32 +136,31 @@ export default {
         .catch(err => {console.error(err)})
     },
 
-    displayNutrientList: function(foodCode) {
+    displayNutrientList: function(dietIndex) {
       this.nutrientDisplay = "block"
+      this.dietDisplay = "none"
+      this.nutrientListDietReferenceIndex = dietIndex
 
       axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
         params: {
-          query: foodCode,
+          query: this.diet[dietIndex].fdcId,
           API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
         }
       })
         .then(res => {
-          console.log(res.data.foods[i])
-          let i = 0
-          this.nutrients = []
-          for (i in res.data) {
-            if (res.data.foods[i].foodNutrients != null) {
-              this.nutrients.push({
-                nutrientName: "cock"
+          console.log("Food object for nutrients list")
+          console.log(res.data.foods[0])
+          this.diet[dietIndex].nutrients = []
+          for (let i in res.data.foods[0].foodNutrients) {
+            if (res.data.foods[0].foodNutrients[i] != null) {
+              this.diet[dietIndex].nutrients.push({
+                nutrientName: res.data.foods[0].foodNutrients[i].nutrientName,
+                value: res.data.foods[0].foodNutrients[i].value,
+                unitName: res.data.foods[0].foodNutrients[i].unitName
               })
-              this.searchResults[i].description = res.data.foods[i].description
-              this.searchResults[i].fdcId = res.data.foods[i].fdcId
-              this.searchResults[i].energy = this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value
-              this.searchResults[i].protein = this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
             } else {
               break
             }
-            i++
           }
 
         })
@@ -216,6 +223,7 @@ li {
   max-width: 1150px;
   margin: 0 auto;
   padding: 0 .5em;
+  background: #fefefe;
 }
 
 .row {
@@ -228,6 +236,43 @@ li {
   flex-grow: 1;
   margin: 20px;
 }
+
+.food-title1 {
+  font-weight: bold;
+  display: block;
+}
+
+.btn {
+  background: #FF9900;
+  border: 2px solid #C13100;
+  font-weight: bold;
+  transition: all .3s;
+}
+
+.btn:hover {
+  background: #C13100;
+}
+
+.num-input {
+  border: 2px solid black;
+  background: #eeeeee;
+  font-weight: bold;
+}
+
+.x-icon {
+  width: 15px;
+  height: 15px;
+  padding: 5px;
+  filter: grayscale(100%);
+  transition: filter .15s;
+}
+
+.x-icon:hover {
+  filter: grayscale(0%);
+}
+
+/* --------------------------------------------SPECIFICS-------------------------------------------*/
+
 
 .search-input {
   margin-bottom: 5px;
@@ -263,17 +308,10 @@ li {
 }
 
 .sri-btn {
-  background: #FF9900;
-  border: 2px solid #C13100;
   margin-left: 2%;
-  font-weight: bold;
   width: 15%;
-  transition: all .3s;
 }
 
-.sri-btn:hover {
-  background: #C13100;
-}
 
 .diet {
   display: block;
@@ -284,7 +322,70 @@ li {
 }
 
 .d-item {
+  display: flex;
   border-bottom: 1px solid black;
+  padding: 5px
 }
+
+.di-info {
+  display: block;
+  width: 85%;
+}
+
+.di-amount {
+  display: inline-block;
+}
+
+.di-input {
+  width: 5em;
+  font-size: 1em;
+}
+
+.di-btn {
+  margin-left: 2%;
+  width: 15%;
+}
+
+
+.nutrition-specifics {
+  display: block;
+  max-height: 300px;
+  border: 1px solid black;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+.ns-item {
+  border-bottom: 1px dotted black;
+  margin: 2px;
+}
+
+.ns-back-arrow-wrapper {
+  display: block;
+  position: absolute;
+  border: 1px solid black;
+  margin: 2px;
+  background: #FF9900;
+  transition: all .3s;
+}
+
+.ns-back-arrow {
+  width: 30px;
+  height: 30px;
+  padding: 5px 0 5px;
+}
+
+.ns-back-arrow-text{
+  display: none;
+  margin: auto;
+}
+
+.ns-back-arrow-wrapper:hover {
+  background: #C13100;
+}
+
+.ns-back-arrow-wrapper:hover .ns-back-arrow-text{
+  display: inline;
+}
+
 
 </style>
