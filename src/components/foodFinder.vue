@@ -1,6 +1,10 @@
 <template>
   <div class="main container">
     <input class="search-input" type="text" placeholder="courtney is a cutie" v-model="searchQuery" v-on:input="findSearchResults()"/>
+    <select v-model="branded" class="branded">
+      <option value="true">Include branded</option>
+      <option value="false">Don't include branded</option>
+    </select>
     <div class="row">
       <div class="search row-item" v-bind:style='{"display": searchDisplay}'>
         <div class="search-results">
@@ -15,7 +19,7 @@
       </div>
       <div class="diet row-item" v-bind:style='{"display": dietDisplay}'>
         <div class="d-item" v-for="(item, index) in diet" :key='index'>
-          <img class="x-icon" src="@/assets/x-icon.png" alt="x-icon">
+          <img class="x-icon" src="@/assets/x-icon.png" alt="x-icon" v-on:click="deleteDietItem(index)">
           <span class="di-info">
             <span class="di-title food-title1">{{ item.description }}</span>
             <span class="di-amount">Weight: <input class="di-input num-input" type="number" v-model="item.weight">Grams</span>
@@ -25,21 +29,23 @@
       </div>
       <div class="nutrition-specifics row-item" v-bind:style='{"display": nutrientDisplay}'>
         <div v-if="diet.length > 0">
-          <div class="ns-back-arrow-wrapper">
+          <div class="ns-back-arrow-wrapper" v-on:click="backToDiet()">
             <img class="back-arrow ns-back-arrow" src="@/assets/back-arrow.png" alt="x-icon">
             <span class="ns-back-arrow-text">Back to Diet</span>
           </div>
-          <span class="nsi-info food-title1">{{ diet[nutrientListDietReferenceIndex].description }}</span>
+          <span class="nsi-info food-title1">{{ diet[nutrientListDietReferenceIndex].description }} ({{diet[nutrientListDietReferenceIndex].weight}}g)</span>
           <div class="ns-item" v-for="(item, index) in diet[nutrientListDietReferenceIndex].nutrients" :key='index'>
             <span class="nsi-info">{{ item.nutrientName }} | Value {{ item.value }} {{ item.unitName }}</span>
           </div>
         </div>
       </div>
     </div>
+    <button class="btn calculate-btn" v-on:click="calculateNutrition()">Calculate Complete Nutrition</button>
   </div>
 </template>
 
 <script>
+import dailyValue from '@/assets/daily-value.json'
 const axios = require('axios').default
 
 export default {
@@ -53,6 +59,7 @@ export default {
       searchDisplay: "none",
       dietDisplay: "none",
       nutrientDisplay: "none",
+      branded: "true",
       nutrientListDietReferenceIndex: 0,
       //               energy   protein   b-12
       nutrientsCount: {1008: 0, 1003: 0, 1178: 0},
@@ -64,6 +71,59 @@ export default {
     }
   },
   methods: {
+
+
+
+
+findSearchResults: function() {
+      if (this.searchQuery == "") {
+        this.searchDisplay = "none"
+      } else {
+        this.searchDisplay = "block"
+      }
+      axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
+        params: {
+          query: this.searchQuery,
+          API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
+        }
+      })
+        .then(res => {
+          console.log(res.data)
+          let i = 0
+          let resultsLength = 30
+          this.searchResults = []
+          while(i < resultsLength) {
+            if (res.data.foods[i] != null) {
+              if (!(res.data.foods[i].dataType == "Branded" && this.branded == "false")) {
+                console.log("Pushing" + i + "to search results")
+                this.searchResults.push({
+                  fdcId: res.data.foods[i].fdcId,
+                  description: res.data.foods[i].description,
+                  energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
+                  protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
+                })
+              }
+              else {
+                resultsLength++
+              }
+            } else {
+              break
+            }
+            i++
+          }
+
+          if (this.searchResults.length == 0) {
+            this.searchDisplay = "none"
+          } else {
+            this.searchDisplay = "block"
+          }
+        })
+        .catch(err => {console.error(err)})
+    },
+
+
+
+
     addToDiet: function(fdcId) {
       if (this.diet == []) {
         this.dietDisplay = "none"
@@ -102,39 +162,8 @@ export default {
         .catch(err => {console.error(err)})
     },
 
-    findSearchResults: function() {
-      if (this.searchQuery == "") {
-        this.searchDisplay = "none"
-      } else {
-        this.searchDisplay = "block"
-      }
-      axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
-        params: {
-          query: this.searchQuery,
-          API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
-        }
-      })
-        .then(res => {
-          console.log(res.data)
-          let i = 0
-          this.searchResults = []
-          while(i < 30) {
-            if (res.data.foods[i] != null) {
-              this.searchResults.push({
-                fdcId: res.data.foods[i].fdcId,
-                description: res.data.foods[i].description,
-                energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
-                protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
-              })
-            } else {
-              break
-            }
-            i++
-          }
 
-        })
-        .catch(err => {console.error(err)})
-    },
+
 
     displayNutrientList: function(dietIndex) {
       this.nutrientDisplay = "block"
@@ -151,11 +180,14 @@ export default {
           console.log("Food object for nutrients list")
           console.log(res.data.foods[0])
           this.diet[dietIndex].nutrients = []
+          let foodScaleMultiplier = this.diet[dietIndex].weight/100
+          let currentNutrientValue = 0
           for (let i in res.data.foods[0].foodNutrients) {
+            currentNutrientValue = +(res.data.foods[0].foodNutrients[i].value*foodScaleMultiplier).toFixed(3)
             if (res.data.foods[0].foodNutrients[i] != null) {
               this.diet[dietIndex].nutrients.push({
                 nutrientName: res.data.foods[0].foodNutrients[i].nutrientName,
-                value: res.data.foods[0].foodNutrients[i].value,
+                value: currentNutrientValue,
                 unitName: res.data.foods[0].foodNutrients[i].unitName
               })
             } else {
@@ -166,6 +198,10 @@ export default {
         })
         .catch(err => {console.error(err)})
     },
+
+
+
+
 
     findNutrientValue: function(data , nutrient) {
       let i = 0
@@ -188,6 +224,32 @@ export default {
           index: 0
         }
       }
+    },
+
+    backToDiet: function() {
+      this.dietDisplay = "block"
+      this.nutrientDisplay = "none"
+    },
+
+    deleteDietItem: function(i) {
+      this.diet.splice(i, 1)
+      this.nutrientListDietReferenceIndex = 0
+      if (this.diet.length == 0) {
+        this.dietDisplay = "none"
+      }
+    },
+
+    calculateNutrition: function() {
+      for(let i in this.diet) {
+        console.log("Calculating nutrition facts based on weight for this.diet[" + i + "]")
+        this.displayNutrientList(i)
+        console.log("adding this.diet[" + i + "] to the total nutrient list")
+        for(let i2 in this.diet[i].nutrients) {
+          this.diet[i].nutrients[i2]
+
+        }
+      }
+      console.log(dailyValue)
     },
 
     gayFunction: function() {
@@ -219,10 +281,11 @@ li {
 }
 
 
+
 .container {
   max-width: 1150px;
   margin: 0 auto;
-  padding: 0 .5em;
+  padding: .5em .5em;
   background: #fefefe;
 }
 
@@ -369,14 +432,20 @@ li {
 }
 
 .ns-back-arrow {
-  width: 30px;
-  height: 30px;
-  padding: 5px 0 5px;
+  width: 25px;
+  height: 25px;
+  padding: 5px 0 5px 0;
+  vertical-align: middle;
 }
 
 .ns-back-arrow-text{
   display: none;
-  margin: auto;
+  margin: 0 5px;
+  padding-top: 2px;
+  color: black;
+  vertical-align: middle;
+  font-stretch: ultra-condensed;
+  transition: all 1s;
 }
 
 .ns-back-arrow-wrapper:hover {
@@ -385,6 +454,7 @@ li {
 
 .ns-back-arrow-wrapper:hover .ns-back-arrow-text{
   display: inline;
+  font-stretch: normal;
 }
 
 
