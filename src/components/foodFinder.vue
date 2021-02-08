@@ -1,5 +1,6 @@
 <template>
   <div class="main container food-finder">
+    <button v-on:click="apiTestFunction()">API TEST</button>
     <input class="search-input" type="text" placeholder="Search your food here" v-model="searchQuery" v-on:input="findSearchResults()"/>
     <select v-model="branded" v-on:input="findSearchResults()" class="branded">
       <option value="true">Include branded</option>
@@ -17,6 +18,7 @@
             </span>
             <button class="sri-btn btn" v-on:click="addToDiet(item.fdcId)">Add to Diet</button>
           </div>
+          <button class="btn" v-bind:style='{"display": searchButtonDisplay}' v-on:click="findMoreSearchResults()">More Search Results</button>
         </div>
       </div>
 
@@ -52,7 +54,7 @@
 
     <div class="diet-settings">
       <span class="header1">Diet Timeframe: </span>
-      <input class="ds-timeframe" type="number" v-model="timeframe">
+      <input class="ds-Timeframe" type="number" v-model="Timeframe">
       <select class="ds-time-unit" v-model="timeMultiplier">
         <option value="1">Days</option>
         <option value="7">Weeks</option>
@@ -105,15 +107,18 @@ export default {
     return {
       searchQuery: "cheerios",
       searchDisplay: "none",
+      searchButtonDisplay: "none",
       dietDisplay: "none",
       nutrientDisplay: "none",
       reportDisplay: "none",
+
       displayNutrientListBlockingVariable: true,
       branded: "true",
-      timeframe: 1,
+      Timeframe: 1,
       timeMultiplier: "1",
       nutrientListDietReferenceIndex: 0,
       searchScroll: 0,
+      resultsLength: 0,
 
       searchResults:[],
       diet:[],
@@ -143,27 +148,32 @@ findSearchResults: function() {
         .then(res => {
           console.log(res.data)
           let i = 0
-          let resultsLength = 30
+          this.resultsLength = 30
           this.searchResults = []
-          while(i < resultsLength) {
+          while(i < this.resultsLength) {
             if (res.data.foods[i] != null) {
-              if (!(res.data.foods[i].dataType == "Branded" && this.branded == "false")) {
-                this.searchResults.push({
-                  fdcId: res.data.foods[i].fdcId,
-                  description: res.data.foods[i].description,
-                  energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
-                  protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
-                })
+              if ((!(res.data.foods[i].dataType == "Branded" && this.branded == "false")) && (!(res.data.foods[i].foodNutrients.length == 0))) {
+                  this.searchResults.push({
+                    fdcId: res.data.foods[i].fdcId,
+                    description: res.data.foods[i].description,
+                    energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
+                    protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
+                  })
               }
               else {
-                resultsLength++
+                this.resultsLength++
               }
             } else {
               break
             }
             i++
           }
-
+          // Search Button Display Checking
+          if (res.data.foods[i] != null) {
+            this.searchButtonDisplay = "inline"
+          } else {
+            this.searchButtonDisplay = "none"
+          }
           if (this.searchResults.length == 0) {
             this.searchDisplay = "none"
           } else {
@@ -173,6 +183,51 @@ findSearchResults: function() {
         .catch(err => {console.error(err)})
     },
 
+    findMoreSearchResults: function() {
+      if (this.searchQuery == "") {
+        this.searchDisplay = "none"
+      } else {
+        this.searchDisplay = "block"
+      }
+      return axios.get("https://api.nal.usda.gov/fdc/v1/foods/search", {
+        params: {
+          query: this.searchQuery,
+          API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
+        }
+      })
+        .then(res => {
+          console.log(res.data)
+          let i = this.resultsLength
+          this.resultsLength += 30
+          while(i < this.resultsLength) {
+            if (res.data.foods[i] != null) {
+              if ((!(res.data.foods[i].dataType == "Branded" && this.branded == "false")) && (!(res.data.foods[i].foodNutrients.length == 0))) {
+                  this.searchResults.push({
+                    fdcId: res.data.foods[i].fdcId,
+                    description: res.data.foods[i].description,
+                    energy: this.findNutrientValue(res.data.foods[i].foodNutrients, 1008).value,
+                    protein: this.findNutrientValue(res.data.foods[i].foodNutrients, 1003).value
+                  })
+              }
+              else {
+                this.resultsLength++
+              }
+            } else {
+              break
+            }
+            i++
+          }
+          // Search Button Display Checking
+           if (res.data.foods[i] != null) {
+             this.searchButtonDisplay = "inline"
+           } else {
+             this.searchButtonDisplay = "none"
+           }
+        })
+        .catch(err => {console.error(err)})
+
+
+    },
 
 
 
@@ -358,11 +413,11 @@ findSearchResults: function() {
       //comparing diet nutrient totals to daily value data
       for(let i in this.reactiveTimeframeValue) {
         console.log("now working with nutrient " + i)
-        //let minimumTimeframeValue = this.reactiveTimeframeValue[i].min * this.timeframe * parseInt(this.timeMultiplier)
+        //let minimumTimeframeValue = this.reactiveTimeframeValue[i].min * this.Timeframe * parseInt(this.timeMultiplier)
 
-        // updating reactiveTimeframeValue to match timeframe
-        this.reactiveTimeframeValue[i].min = this.reactiveTimeframeValue[i].min * this.timeframe * parseInt(this.timeMultiplier)
-        this.reactiveTimeframeValue[i].max = this.reactiveTimeframeValue[i].max * this.timeframe * parseInt(this.timeMultiplier)
+        // updating reactiveTimeframeValue to match Timeframe
+        this.reactiveTimeframeValue[i].min = this.reactiveTimeframeValue[i].min * this.Timeframe * parseInt(this.timeMultiplier)
+        this.reactiveTimeframeValue[i].max = this.reactiveTimeframeValue[i].max * this.Timeframe * parseInt(this.timeMultiplier)
         // starting at a baseline normal value
         if (this.totalUserNutrition[i] == undefined) {
           this.totalUserNutrition[i] = {value: 0, nutrientName: this.reactiveTimeframeValue[i].name, DVCompare: "normal", moreInfoToggle: false}
@@ -385,7 +440,7 @@ findSearchResults: function() {
           }
         }
       }
-      console.log("rtimeframe")
+      console.log("rTimeframe")
       console.log(this.reactiveTimeframeValue["1003"].min)
       console.log(this.reactiveTimeframeValue)
       console.log("rdaily")
@@ -396,6 +451,18 @@ findSearchResults: function() {
       console.log(dailyValue)
       console.log(this.totalUserNutrition)
       this.reportDisplay = "block"
+    },
+    apiTestFunction: function() {
+      return axios.get("https://api.nal.usda.gov/fdc/v1/json-spec", {
+        params: {
+          query: this.searchQuery,
+          API_KEY: "i4ljZA3H5yxGNHOmFgcEbBy0U5Kiwxd7LWs2u3ya"
+        }
+      })
+        .then(res => {
+          console.log(res.data)
+        })
+        .catch(err => {console.error(err)})
     }
   }
 }
@@ -654,7 +721,7 @@ li {
 .diet-settings {
   margin-bottom: 1em;
 }
-.ds-timeframe {
+.ds-Timeframe {
   width: 35px;
 }
 

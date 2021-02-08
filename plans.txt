@@ -1,6 +1,7 @@
 FUNCTIONALITY
 - create login to store user diet data 
 - search bar more results button
+- remove dud search results
 
 
 STYLING

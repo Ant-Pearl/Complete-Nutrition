@@ -20,7 +20,7 @@
   "1103": {"name": "Selenium", "min": 55, "max": 999999, "unit": "UG", "reference": "https://www.fda.gov/food/new-nutrition-facts-label/daily-value-new-nutrition-and-supplement-facts-labels"},
   "1105": {"name": "Retinol", "min": 700 , "max": 3000, "unit": "UG", "reference": "https://www.ncbi.nlm.nih.gov/books/NBK222318/"},
   "1106": {"name": "Vitamin A, RAE", "min": 700, "max": 999999, "unit": "UG", "reference": "https://ods.od.nih.gov/factsheets/VitaminA-HealthProfessional/"},
-  "1107": {"name": "Carotene, beta", "min": 4000 , "max": 3000, "unit": "UG", "reference": "https://www.ncbi.nlm.nih.gov/books/NBK225469/"},
+  "1107": {"name": "Carotene, beta", "min": 4000 , "max": 999999, "unit": "UG", "reference": "https://www.ncbi.nlm.nih.gov/books/NBK225469/"},
   "1108": {"name": "Carotene, alpha", "min": 600, "max": 999999, "unit": "UG", "reference": "https://www.ncbi.nlm.nih.gov/books/NBK225469/"},
   "1109": {"name": "Vitamin E (alpha-tocopherol)", "min": 15, "max": 999999, "unit": "MG", "reference": "https://ods.od.nih.gov/factsheets/VitaminE-HealthProfessional/"},
   "1114": {"name": "Vitamin D (D2 + D3)", "min": 15, "max": 999999, "unit": "UG", "reference": "https://ods.od.nih.gov/factsheets/VitaminD-HealthProfessional/"},
