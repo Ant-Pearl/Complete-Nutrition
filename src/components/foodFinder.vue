@@ -1,7 +1,7 @@
 <template>
   <div class="main container food-finder">
     <input class="search-input" type="text" placeholder="Search your food here" v-model="searchQuery" v-on:input="findSearchResults()"/>
-    <select v-model="branded" class="branded">
+    <select v-model="branded" v-on:input="findSearchResults()" class="branded">
       <option value="true">Include branded</option>
       <option value="false">Don't include branded</option>
     </select>
@@ -77,8 +77,14 @@
               <span v-if="item.moreInfoToggle">Less Info</span>
               <span v-if="!item.moreInfoToggle">More Info</span>
             </button>
-            <div class="drimi-row" v-if="item.moreInfoToggle">Minimum: {{ reactiveDailyValue[index].min }} {{ reactiveDailyValue[index].unit }} | Maxiumum: {{ reactiveDailyValue[index].max }} {{ reactiveDailyValue[index].unit }}</div>
-            <div class="drimi-row" v-if="item.moreInfoToggle">Reference: {{ reactiveDailyValue[index].reference }}</div>
+            <span class="drimi-content" v-if="item.moreInfoToggle">
+              <div class="drimi-row drimi-category header2">Daily Values</div>
+              <div class="drimi-row">Minimum: {{ reactiveDailyValue[index].min }} {{ reactiveDailyValue[index].unit }} | Maxiumum: {{ reactiveDailyValue[index].max }} {{ reactiveDailyValue[index].unit }}</div>
+              <div class="drimi-row drimi-category header2">Timeframe Values</div>
+              <div class="drimi-row">Minimum: {{ reactiveTimeframeValue[index].min }} {{ reactiveTimeframeValue[index].unit }} | Maxiumum: {{ reactiveTimeframeValue[index].max }} {{ reactiveTimeframeValue[index].unit }}</div>
+              <div class="drimi-row drimi-category header2">Reference</div>
+              <div class="drimi-row"><a :href="reactiveDailyValue[index].reference">{{ reactiveDailyValue[index].reference }}</a></div>
+            </span>
           </span>
         </div>
     </div>
@@ -88,7 +94,6 @@
 
 <script>
 import dailyValue from '@/assets/daily-value.json'
-//import dailyValue2 from '@/assets/daily-value.json'
 const axios = require('axios').default
 
 export default {
@@ -345,34 +350,37 @@ findSearchResults: function() {
     compareDietToDailyValues: function() {
       console.log("totaling up nutrition")
       this.totalUserNutrition = {}
+      let tempJSONDVString = JSON.stringify(dailyValue)
+      this.reactiveDailyValue = JSON.parse(tempJSONDVString)
       this.totalUpDietNutrition()
-      this.reactiveTimeframeValue = dailyValue
+      tempJSONDVString = JSON.stringify(this.reactiveDailyValue)
+      this.reactiveTimeframeValue = JSON.parse(tempJSONDVString)
       //comparing diet nutrient totals to daily value data
-      for(let i in dailyValue) {
+      for(let i in this.reactiveTimeframeValue) {
         console.log("now working with nutrient " + i)
-        //let minimumTimeframeValue = dailyValue[i].min * this.timeframe * parseInt(this.timeMultiplier)
+        //let minimumTimeframeValue = this.reactiveTimeframeValue[i].min * this.timeframe * parseInt(this.timeMultiplier)
 
         // updating reactiveTimeframeValue to match timeframe
         this.reactiveTimeframeValue[i].min = this.reactiveTimeframeValue[i].min * this.timeframe * parseInt(this.timeMultiplier)
         this.reactiveTimeframeValue[i].max = this.reactiveTimeframeValue[i].max * this.timeframe * parseInt(this.timeMultiplier)
         // starting at a baseline normal value
         if (this.totalUserNutrition[i] == undefined) {
-          this.totalUserNutrition[i] = {value: 0, nutrientName: dailyValue[i].name, DVCompare: "normal", moreInfoToggle: false}
+          this.totalUserNutrition[i] = {value: 0, nutrientName: this.reactiveTimeframeValue[i].name, DVCompare: "normal", moreInfoToggle: false}
         }
         // checking if too low
-        if (dailyValue[i].min > this.totalUserNutrition[i].value) {
+        if (this.reactiveTimeframeValue[i].min > this.totalUserNutrition[i].value) {
           this.totalUserNutrition[i].DVCompare = "low"
-          console.log(dailyValue[i].min*.7)
-          console.log(dailyValue[i].max + dailyValue[i].min*.3)
-          if (dailyValue[i].min*.7 < this.totalUserNutrition[i].value) {
+          console.log(this.reactiveTimeframeValue[i].min*.7)
+          console.log(this.reactiveTimeframeValue[i].max + this.reactiveTimeframeValue[i].min*.3)
+          if (this.reactiveTimeframeValue[i].min*.7 < this.totalUserNutrition[i].value) {
             console.log("slightly low")
             this.totalUserNutrition[i].DVCompare = "slightly low"
           }
         }
         // checking if too high
-        if (dailyValue[i].max < this.totalUserNutrition[i].value) {
+        if (this.reactiveTimeframeValue[i].max < this.totalUserNutrition[i].value) {
           this.totalUserNutrition[i].DVCompare = "high"
-          if (dailyValue[i].max + dailyValue[i].min*.3 > this.totalUserNutrition[i].value) {
+          if (this.reactiveTimeframeValue[i].max + this.reactiveTimeframeValue[i].min*.3 > this.totalUserNutrition[i].value) {
             this.totalUserNutrition[i].DVCompare = "slightly high"
           }
         }
@@ -481,6 +489,10 @@ li {
   font-size: 1.1em;
 }
 
+.header2 {
+  font-weight: bold;
+}
+
 /* --------------------------------------------SPECIFICS-------------------------------------------*/
 
 
@@ -578,24 +590,28 @@ li {
   border: 1px solid black;
   margin: 2px;
   background: #FF9900;
-  transition: all .3s;
+  box-shadow: 2px 3px 6px black;
+  transition: all 1s;
 }
 
 .ns-back-arrow {
   width: 25px;
   height: 25px;
-  padding: 5px 0 5px 0;
+  padding: 5px 0 5px 0px;
   vertical-align: middle;
 }
 
 .ns-back-arrow-text{
-  display: none;
-  margin: 0 5px;
+  display: inline-block;
+  white-space: nowrap;
+  margin: 0;
   padding-top: 2px;
   color: black;
   vertical-align: middle;
   font-stretch: ultra-condensed;
+  width: 0px;
   transition: all 1s;
+  overflow: hidden;
 }
 
 .ns-back-arrow-wrapper:hover {
@@ -603,7 +619,8 @@ li {
 }
 
 .ns-back-arrow-wrapper:hover .ns-back-arrow-text{
-  display: inline;
+  display: inline-block;
+  width: 100px;
   font-stretch: normal;
 }
 
